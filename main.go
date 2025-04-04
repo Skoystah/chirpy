@@ -1,36 +1,40 @@
 package main
 
 import (
-	"io"
 	"log"
 	"net/http"
+	"sync/atomic"
 )
+
+type apiConfig struct {
+	fileserverHits atomic.Int32
+}
 
 func main() {
 	serveMux := http.NewServeMux()
+	//since its a very small struct a pointer is not needed - but it doesnt hurt to create it as a pointer
+	apiConfig := apiConfig{}
 
 	server := &http.Server{Handler: serveMux, Addr: ":8080"}
 
-	//new handler = File server - path = "." or current directory
 	fileServer := http.StripPrefix("/app/", http.FileServer(http.Dir(".")))
-	//add handler to server multiplexer
-	serveMux.Handle("/app/", fileServer)
-	serveMux.HandleFunc("/healthz", healthz)
+	serveMux.Handle("/app/", apiConfig.middlewareMetricsInc(fileServer))
+
+	serveMux.HandleFunc("GET /healthz", healthz)
+	serveMux.HandleFunc("GET /metrics", apiConfig.metrics)
+	serveMux.HandleFunc("POST /reset", apiConfig.reset)
 
 	err := server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
 
-func healthz(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
-	w.WriteHeader(http.StatusOK)
-	_, err := io.WriteString(w, "OK")
-	if err != nil {
-		log.Fatal(err)
-	}
-
+func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
+	//in this case we CONVERT a regular func(w, req) ... to a http.HandlerFunc TYPE. Its the same as converting int32 to int for example.
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		cfg.fileserverHits.Add(1)
+		//we must call ServeHTTP manually in this case, otherwise the chain of handlers stops here.  e
+		next.ServeHTTP(w, req)
+	})
 }
