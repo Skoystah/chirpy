@@ -20,9 +20,10 @@ func main() {
 	fileServer := http.StripPrefix("/app/", http.FileServer(http.Dir(".")))
 	serveMux.Handle("/app/", apiConfig.middlewareMetricsInc(fileServer))
 
-	serveMux.HandleFunc("GET /healthz", healthz)
-	serveMux.HandleFunc("GET /metrics", apiConfig.metrics)
-	serveMux.HandleFunc("POST /reset", apiConfig.reset)
+	serveMux.HandleFunc("GET /api/healthz", healthz)
+	serveMux.HandleFunc("GET /admin/metrics", apiConfig.metrics)
+	serveMux.HandleFunc("POST /admin/reset", apiConfig.reset)
+	serveMux.HandleFunc("POST /api/validate_chirp", validateChirp)
 
 	err := server.ListenAndServe()
 	if err != nil {
