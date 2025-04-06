@@ -1,6 +1,7 @@
 package api
 
 import (
+	"chirpy/internal/auth"
 	"chirpy/internal/config"
 	"chirpy/internal/db"
 	"chirpy/internal/model"
@@ -23,7 +24,14 @@ func CreateUser(cfg *config.ApiConfig) http.HandlerFunc {
 			return
 		}
 
-		newUser, err := db.CreateUserDB(cfg, model.User{Email: params.Email})
+		hashedPassword, err := auth.HashPassword(params.Password)
+		if err != nil {
+			log.Printf("error creating user: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		newUser, err := db.CreateUserDB(cfg, model.User{Email: params.Email, HashedPassword: hashedPassword})
 		if err != nil {
 			log.Printf("error creating user: %w", err)
 			w.WriteHeader(http.StatusInternalServerError)
