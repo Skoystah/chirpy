@@ -33,7 +33,7 @@ func CreateUser(cfg *config.ApiConfig) http.HandlerFunc {
 
 		newUser, err := db.CreateUserDB(cfg, model.User{Email: params.Email, HashedPassword: hashedPassword})
 		if err != nil {
-			log.Printf("error creating user: %w", err)
+			log.Printf("error creating user: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

@@ -32,7 +32,7 @@ func CreateChirp(cfg *config.ApiConfig) http.HandlerFunc {
 
 		newChirp, err := db.CreateChirpDB(cfg, model.Chirp{Body: cleaned_chirp, UserID: params.UserID})
 		if err != nil {
-			log.Printf("error creating chirp: %w", err)
+			log.Printf("error creating chirp: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

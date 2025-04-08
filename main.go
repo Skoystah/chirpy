@@ -20,6 +20,7 @@ func main() {
 	}
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
+	secret := os.Getenv("SECRET")
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -30,7 +31,7 @@ func main() {
 	//Create API config
 	//since its a very small struct a pointer is not needed - but it doesnt hurt to create it as a pointer
 	//apiConfig := apiConfig{db: dbQueries}
-	cfg := &config.ApiConfig{Db: dbQueries, Platform: platform}
+	cfg := &config.ApiConfig{Db: dbQueries, Platform: platform, Secret: secret}
 
 	//Handle HTTP server stuff
 	serveMux := http.NewServeMux()

@@ -6,10 +6,10 @@ import (
 	"chirpy/internal/db"
 	"chirpy/internal/model"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
 
 func Login(cfg *config.ApiConfig) http.HandlerFunc {
@@ -33,7 +33,6 @@ func Login(cfg *config.ApiConfig) http.HandlerFunc {
 			return
 		}
 
-		fmt.Println("Password", params.Password, "Hash", user.HashedPassword)
 		err = auth.CheckPasswordHash(user.HashedPassword, params.Password)
 		if err != nil {
 			log.Print("password not correct")
@@ -47,16 +46,35 @@ func Login(cfg *config.ApiConfig) http.HandlerFunc {
 			}
 			return
 		}
+		//TODO MORE ELEGANTLY!
+		var expiresIn time.Duration
+		if params.ExpiresIn > 0 {
+			if params.ExpiresIn > 3600 {
+				expiresIn, _ = time.ParseDuration("3600")
+			} else {
+				expiresIn, _ = time.ParseDuration(string(params.ExpiresIn))
+			}
+		} else {
+			expiresIn, _ = time.ParseDuration("3600")
+		}
+
+		token, err := auth.MakeJWT(user.ID, cfg.Secret, expiresIn)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Fatal(err)
+		}
+
 		w.WriteHeader(http.StatusOK)
 		//you can also marshal but its more cumbersome for this purpose. Marshal is good when you need to save the
 		//intermediate result.
 		encoder := json.NewEncoder(w)
 
-		response := model.CreateUserResponse{
+		response := model.LoginResponse{
 			ID:        user.ID,
 			CreatedAt: user.CreatedAt,
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
+			Token:     token,
 		}
 		err = encoder.Encode(&response)
 		if err != nil {
