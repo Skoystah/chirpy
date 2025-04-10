@@ -55,6 +55,9 @@ func main() {
 	serveMux.HandleFunc("POST /api/refresh", api.Refresh(cfg))
 	serveMux.HandleFunc("POST /api/revoke", api.Revoke(cfg))
 
+	//PUT
+	serveMux.HandleFunc("PUT /api/users", api.UpdateUser(cfg))
+
 	//Start server
 	err = server.ListenAndServe()
 	if err != nil {

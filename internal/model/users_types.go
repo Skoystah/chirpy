@@ -21,6 +21,21 @@ type CreateUserError struct {
 	Error string `json:"error"`
 }
 
+type UpdateUserRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type UpdateUserResponse struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
+}
+
+type UpdateUserError struct {
+	Error string `json:"error"`
+}
 type User struct {
 	ID             uuid.UUID
 	CreatedAt      time.Time

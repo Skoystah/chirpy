@@ -8,7 +8,7 @@ import (
 	"fmt"
 )
 
-// todo input User or CreateUserRequest?
+// to-do input User or CreateUserRequest?
 func CreateUserDB(cfg *config.ApiConfig, user model.User) (model.User, error) {
 	ctx := context.Background()
 
@@ -26,6 +26,27 @@ func CreateUserDB(cfg *config.ApiConfig, user model.User) (model.User, error) {
 		CreatedAt: newUser.CreatedAt,
 		UpdatedAt: newUser.UpdatedAt,
 		Email:     newUser.Email,
+	}, nil
+}
+
+func UpdateUserDB(cfg *config.ApiConfig, user model.User) (model.User, error) {
+	ctx := context.Background()
+
+	updatedUser, err := cfg.Db.UpdateUser(ctx, database.UpdateUserParams{
+		Email:          user.Email,
+		HashedPassword: user.HashedPassword,
+		ID:             user.ID,
+	})
+
+	if err != nil {
+		return model.User{}, fmt.Errorf("error updating new user %w: ", err)
+	}
+
+	return model.User{
+		ID:        updatedUser.ID,
+		CreatedAt: updatedUser.CreatedAt,
+		UpdatedAt: updatedUser.UpdatedAt,
+		Email:     updatedUser.Email,
 	}, nil
 }
 
