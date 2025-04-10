@@ -52,6 +52,8 @@ func main() {
 	serveMux.HandleFunc("POST /api/login", api.Login(cfg))
 	serveMux.HandleFunc("POST /api/users", api.CreateUser(cfg))
 	serveMux.HandleFunc("POST /api/chirps", api.CreateChirp(cfg))
+	serveMux.HandleFunc("POST /api/refresh", api.Refresh(cfg))
+	serveMux.HandleFunc("POST /api/revoke", api.Revoke(cfg))
 
 	//Start server
 	err = server.ListenAndServe()

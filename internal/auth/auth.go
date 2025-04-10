@@ -1,13 +1,16 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func HashPassword(password string) (string, error) {
@@ -73,4 +76,12 @@ func GetBearerToken(headers http.Header) (string, error) {
 	}
 	tokenString, _ := strings.CutPrefix(authorizationHeader, "Bearer ")
 	return tokenString, nil
+}
+
+func MakeRefreshToken() (string, error) {
+	refreshToken := make([]byte, 32)
+	rand.Read(refreshToken)
+
+	refreshTokenHex := hex.EncodeToString(refreshToken)
+	return refreshTokenHex, nil
 }

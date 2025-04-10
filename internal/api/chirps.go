@@ -1,14 +1,16 @@
 package api
 
 import (
+	"chirpy/internal/auth"
 	"chirpy/internal/config"
 	"chirpy/internal/db"
 	"chirpy/internal/model"
 	"encoding/json"
-	"github.com/google/uuid"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 func CreateChirp(cfg *config.ApiConfig) http.HandlerFunc {
@@ -24,13 +26,27 @@ func CreateChirp(cfg *config.ApiConfig) http.HandlerFunc {
 			return
 		}
 
+		// AUTH
+		token, err := auth.GetBearerToken(req.Header)
+		if err != nil {
+			log.Printf("Error getting token: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		authUserID, err := auth.ValidateJWT(token, cfg.Secret)
+		if err != nil {
+			log.Printf("Error validating token: %v", err)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
 		valid, cleaned_chirp := validateChirp(params.Body)
 		if !valid {
 			//Todo proper way to send error out
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 
-		newChirp, err := db.CreateChirpDB(cfg, model.Chirp{Body: cleaned_chirp, UserID: params.UserID})
+		newChirp, err := db.CreateChirpDB(cfg, model.Chirp{Body: cleaned_chirp, UserID: authUserID})
 		if err != nil {
 			log.Printf("error creating chirp: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)

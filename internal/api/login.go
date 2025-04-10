@@ -47,18 +47,25 @@ func Login(cfg *config.ApiConfig) http.HandlerFunc {
 			return
 		}
 		//TODO MORE ELEGANTLY!
-		var expiresIn time.Duration
-		if params.ExpiresIn > 0 {
-			if params.ExpiresIn > 3600 {
-				expiresIn, _ = time.ParseDuration("3600")
-			} else {
-				expiresIn, _ = time.ParseDuration(string(params.ExpiresIn))
-			}
-		} else {
-			expiresIn, _ = time.ParseDuration("3600")
+		const expiresIn = time.Hour
+		token, err := auth.MakeJWT(user.ID, cfg.Secret, expiresIn)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Fatal(err)
 		}
 
-		token, err := auth.MakeJWT(user.ID, cfg.Secret, expiresIn)
+		//Create REFRESH token
+		refreshToken, err := auth.MakeRefreshToken()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Fatal(err)
+		}
+		const refreshExpiresIn = 60
+		err = db.CreateRefreshToken(cfg, model.RefreshToken{
+			Token:      refreshToken,
+			UserID:     user.ID,
+			Expires_at: time.Now().AddDate(0, 0, 60),
+		})
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			log.Fatal(err)
@@ -70,11 +77,12 @@ func Login(cfg *config.ApiConfig) http.HandlerFunc {
 		encoder := json.NewEncoder(w)
 
 		response := model.LoginResponse{
-			ID:        user.ID,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-			Email:     user.Email,
-			Token:     token,
+			ID:           user.ID,
+			CreatedAt:    user.CreatedAt,
+			UpdatedAt:    user.UpdatedAt,
+			Email:        user.Email,
+			Token:        token,
+			RefreshToken: refreshToken,
 		}
 		err = encoder.Encode(&response)
 		if err != nil {
