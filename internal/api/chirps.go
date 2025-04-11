@@ -6,7 +6,7 @@ import (
 	"chirpy/internal/db"
 	"chirpy/internal/model"
 	"encoding/json"
-	"log"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -16,46 +16,38 @@ import (
 func CreateChirp(cfg *config.ApiConfig) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 
-		decoder := json.NewDecoder(req.Body)
-		params := model.CreateChirpRequest{}
-
-		err := decoder.Decode(&params)
-		if err != nil {
-			log.Printf("Error decoding parameters: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
 		// AUTH
 		token, err := auth.GetBearerToken(req.Header)
 		if err != nil {
-			log.Printf("Error getting token: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			respondWithError(w, http.StatusInternalServerError, err, "Error reading JWT token")
 			return
 		}
 		authUserID, err := auth.ValidateJWT(token, cfg.Secret)
 		if err != nil {
-			log.Printf("Error validating token: %v", err)
-			w.WriteHeader(http.StatusUnauthorized)
+			respondWithError(w, http.StatusUnauthorized, err, "Error validating JWT token")
 			return
 		}
 
-		valid, cleaned_chirp := validateChirp(params.Body)
-		if !valid {
-			//Todo proper way to send error out
-			w.WriteHeader(http.StatusInternalServerError)
+		decoder := json.NewDecoder(req.Body)
+		params := model.CreateChirpRequest{}
+
+		err = decoder.Decode(&params)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err, "Error decoding parameters")
+			return
+		}
+
+		cleaned_chirp, err := validateChirp(params.Body)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err, err.Error())
+			return
 		}
 
 		newChirp, err := db.CreateChirpDB(cfg, model.Chirp{Body: cleaned_chirp, UserID: authUserID})
 		if err != nil {
-			log.Printf("error creating chirp: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			respondWithError(w, http.StatusInternalServerError, err, "Error creating chirp")
 			return
 		}
-
-		//you can also marshal but its more cumbersome for this purpose. Marshal is good when you need to save the
-		//intermediate result.
-		encoder := json.NewEncoder(w)
 
 		response := model.CreateChirpResponse{
 			ID:        newChirp.ID,
@@ -64,13 +56,7 @@ func CreateChirp(cfg *config.ApiConfig) http.HandlerFunc {
 			Body:      newChirp.Body,
 			UserID:    newChirp.UserID,
 		}
-		w.WriteHeader(http.StatusCreated)
-		err = encoder.Encode(&response)
-		if err != nil {
-			log.Printf("Error encoding parameters")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		respondWithJSON(w, http.StatusCreated, response)
 	})
 }
 
@@ -79,14 +65,9 @@ func GetChirps(cfg *config.ApiConfig) http.HandlerFunc {
 
 		chirps, err := db.GetChirpsDB(cfg)
 		if err != nil {
-			log.Printf("error fetching chirps: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			respondWithError(w, http.StatusInternalServerError, err, "Error fetching chirps")
 			return
 		}
-
-		//you can also marshal but its more cumbersome for this purpose. Marshal is good when you need to save the
-		//intermediate result.
-		encoder := json.NewEncoder(w)
 
 		var response []model.GetChirpResponse
 
@@ -99,14 +80,7 @@ func GetChirps(cfg *config.ApiConfig) http.HandlerFunc {
 				UserID:    chirp.UserID,
 			})
 		}
-
-		w.WriteHeader(http.StatusOK)
-		err = encoder.Encode(&response)
-		if err != nil {
-			log.Printf("Error encoding parameters")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		respondWithJSON(w, http.StatusOK, response)
 	})
 }
 
@@ -115,19 +89,15 @@ func GetChirp(cfg *config.ApiConfig) http.HandlerFunc {
 
 		chirpID, err := uuid.Parse(req.PathValue("id"))
 		if err != nil {
-			log.Printf("error parsing uuid to string: %v", err)
+			respondWithError(w, http.StatusInternalServerError, err, "Error parsing ID")
+			return
 		}
 
 		chirp, err := db.GetChirpDB(cfg, model.Chirp{ID: chirpID})
 		if err != nil {
-			log.Printf("error fetching chirp: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			respondWithError(w, http.StatusNotFound, err, "Chirp not found")
 			return
 		}
-
-		//you can also marshal but its more cumbersome for this purpose. Marshal is good when you need to save the
-		//intermediate result.
-		encoder := json.NewEncoder(w)
 
 		response := model.GetChirpResponse{
 			ID:        chirp.ID,
@@ -137,21 +107,55 @@ func GetChirp(cfg *config.ApiConfig) http.HandlerFunc {
 			UserID:    chirp.UserID,
 		}
 
-		w.WriteHeader(http.StatusOK)
-		err = encoder.Encode(&response)
-		if err != nil {
-			log.Printf("Error encoding parameters")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		respondWithJSON(w, http.StatusOK, response)
 	})
 }
-func validateChirp(chirp string) (bool, string) {
+func DeleteChirp(cfg *config.ApiConfig) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// AUTH
+		token, err := auth.GetBearerToken(req.Header)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err, "Error reading JWT token")
+			return
+		}
+		authUserID, err := auth.ValidateJWT(token, cfg.Secret)
+		if err != nil {
+			respondWithError(w, http.StatusUnauthorized, err, "Error validating JWT token")
+			return
+		}
+
+		chirpID, err := uuid.Parse(req.PathValue("id"))
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err, "Error parsing ID")
+			return
+		}
+
+		chirp, err := db.GetChirpDB(cfg, model.Chirp{ID: chirpID})
+		if err != nil {
+			respondWithError(w, http.StatusNotFound, err, "Chirp not found")
+			return
+		}
+
+		if chirp.UserID != authUserID {
+			err = errors.New("Chirp does not belong to this user")
+			respondWithError(w, http.StatusForbidden, err, err.Error())
+			return
+		}
+
+		err = db.DeleteChirpDB(cfg, chirp)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err, "Error deleting chirp")
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+}
+func validateChirp(chirp string) (string, error) {
 
 	const maxChirpLength = 140
 	if chirpLength := len(chirp); chirpLength > maxChirpLength {
-		log.Printf("Chirp is too long: %d - %s", chirpLength, chirp)
-		return false, chirp
+		return "", errors.New("Chirp is too long")
 	}
 
 	//gdo: I first had a map[string]bool with 'true' for all the values. This also works but by convention struct{} is more used,
@@ -168,5 +172,5 @@ func validateChirp(chirp string) (bool, string) {
 			words[i] = strings.Repeat("*", 4)
 		}
 	}
-	return true, strings.Join(words, " ")
+	return strings.Join(words, " "), nil
 }

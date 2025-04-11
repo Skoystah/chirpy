@@ -65,3 +65,14 @@ func GetChirpDB(cfg *config.ApiConfig, chirp model.Chirp) (model.Chirp, error) {
 		UserID:    fetchedChirp.UserID,
 	}, nil
 }
+
+func DeleteChirpDB(cfg *config.ApiConfig, chirp model.Chirp) error {
+	ctx := context.Background()
+
+	err := cfg.Db.DeleteChirp(ctx, chirp.ID)
+	if err != nil {
+		return fmt.Errorf("error deleting chirp %w: ", err)
+	}
+
+	return nil
+}

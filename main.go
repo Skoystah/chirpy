@@ -58,6 +58,10 @@ func main() {
 	//PUT
 	serveMux.HandleFunc("PUT /api/users", api.UpdateUser(cfg))
 
+	//DELETE
+
+	serveMux.HandleFunc("DELETE /api/chirps/{id}", api.DeleteChirp(cfg))
+
 	//Start server
 	err = server.ListenAndServe()
 	if err != nil {
