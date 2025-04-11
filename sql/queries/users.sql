@@ -22,3 +22,8 @@ WHERE email = $1;
 -- name: DeleteUsers :exec
 DELETE FROM users;
 
+-- name: UpdateUserRed :one
+UPDATE users
+SET is_chirpy_red = $1, updated_at = NOW()
+WHERE id = $2
+RETURNING *;

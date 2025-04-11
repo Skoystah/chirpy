@@ -60,6 +60,7 @@ func Login(cfg *config.ApiConfig) http.HandlerFunc {
 			return
 		}
 
+		//TODO refactor to include user inside
 		response := model.LoginResponse{
 			ID:           user.ID,
 			CreatedAt:    user.CreatedAt,
@@ -67,6 +68,7 @@ func Login(cfg *config.ApiConfig) http.HandlerFunc {
 			Email:        user.Email,
 			Token:        token,
 			RefreshToken: refreshToken,
+			IsChirpyRed:  user.IsChirpyRed,
 		}
 		respondWithJSON(w, http.StatusOK, response)
 	})

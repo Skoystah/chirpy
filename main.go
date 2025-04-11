@@ -21,6 +21,7 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
 	secret := os.Getenv("SECRET")
+	polka_key := os.Getenv("POLKA_KEY")
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -31,7 +32,7 @@ func main() {
 	//Create API config
 	//since its a very small struct a pointer is not needed - but it doesnt hurt to create it as a pointer
 	//apiConfig := apiConfig{db: dbQueries}
-	cfg := &config.ApiConfig{Db: dbQueries, Platform: platform, Secret: secret}
+	cfg := &config.ApiConfig{Db: dbQueries, Platform: platform, Secret: secret, PolkaKey: polka_key}
 
 	//Handle HTTP server stuff
 	serveMux := http.NewServeMux()
@@ -54,6 +55,7 @@ func main() {
 	serveMux.HandleFunc("POST /api/chirps", api.CreateChirp(cfg))
 	serveMux.HandleFunc("POST /api/refresh", api.Refresh(cfg))
 	serveMux.HandleFunc("POST /api/revoke", api.Revoke(cfg))
+	serveMux.HandleFunc("POST /api/polka/webhooks", api.PolkaWebhooks(cfg))
 
 	//PUT
 	serveMux.HandleFunc("PUT /api/users", api.UpdateUser(cfg))

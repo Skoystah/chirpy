@@ -17,10 +17,6 @@ type CreateChirpResponse struct {
 	UserID    uuid.UUID `json:"user_id"`
 }
 
-type CreateChirpError struct {
-	Error string `json:"error"`
-}
-
 type GetChirpResponse struct {
 	ID        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
@@ -29,9 +25,6 @@ type GetChirpResponse struct {
 	UserID    uuid.UUID `json:"user_id"`
 }
 
-type GetChirpsError struct {
-	Error string `json:"error"`
-}
 type Chirp struct {
 	ID        uuid.UUID
 	CreatedAt time.Time

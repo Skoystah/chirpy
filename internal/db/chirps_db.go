@@ -6,6 +6,8 @@ import (
 	"chirpy/internal/model"
 	"context"
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 func CreateChirpDB(cfg *config.ApiConfig, chirp model.Chirp) (model.Chirp, error) {
@@ -25,12 +27,22 @@ func CreateChirpDB(cfg *config.ApiConfig, chirp model.Chirp) (model.Chirp, error
 	}, nil
 }
 
-func GetChirpsDB(cfg *config.ApiConfig) ([]model.Chirp, error) {
+func GetChirpsDB(cfg *config.ApiConfig, chirp model.Chirp) ([]model.Chirp, error) {
 	ctx := context.Background()
 
-	chirps, err := cfg.Db.GetChirps(ctx)
-	if err != nil {
-		return []model.Chirp{}, fmt.Errorf("error creating new chirp %w: ", err)
+	var chirps []database.Chirp
+	var err error
+
+	if chirp.UserID == uuid.Nil {
+		chirps, err = cfg.Db.GetChirps(ctx)
+		if err != nil {
+			return []model.Chirp{}, fmt.Errorf("error creating new chirp %w: ", err)
+		}
+	} else {
+		chirps, err = cfg.Db.GetChirpsUser(ctx, chirp.UserID)
+		if err != nil {
+			return []model.Chirp{}, fmt.Errorf("error creating new chirp %w: ", err)
+		}
 	}
 
 	//todo - dto 'mapper' for this?

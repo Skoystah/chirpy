@@ -33,10 +33,11 @@ func CreateUser(cfg *config.ApiConfig) http.HandlerFunc {
 		}
 
 		response := model.CreateUserResponse{
-			ID:        newUser.ID,
-			CreatedAt: newUser.CreatedAt,
-			UpdatedAt: newUser.UpdatedAt,
-			Email:     newUser.Email,
+			ID:          newUser.ID,
+			CreatedAt:   newUser.CreatedAt,
+			UpdatedAt:   newUser.UpdatedAt,
+			Email:       newUser.Email,
+			IsChirpyRed: newUser.IsChirpyRed,
 		}
 		respondWithJSON(w, http.StatusCreated, response)
 	})
@@ -78,10 +79,11 @@ func UpdateUser(cfg *config.ApiConfig) http.HandlerFunc {
 		}
 
 		response := model.UpdateUserResponse{
-			ID:        newUser.ID,
-			CreatedAt: newUser.CreatedAt,
-			UpdatedAt: newUser.UpdatedAt,
-			Email:     newUser.Email,
+			ID:          newUser.ID,
+			CreatedAt:   newUser.CreatedAt,
+			UpdatedAt:   newUser.UpdatedAt,
+			Email:       newUser.Email,
+			IsChirpyRed: newUser.IsChirpyRed,
 		}
 		respondWithJSON(w, http.StatusOK, response)
 	})

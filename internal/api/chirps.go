@@ -7,15 +7,14 @@ import (
 	"chirpy/internal/model"
 	"encoding/json"
 	"errors"
-	"net/http"
-	"strings"
-
 	"github.com/google/uuid"
+	"net/http"
+	"sort"
+	"strings"
 )
 
 func CreateChirp(cfg *config.ApiConfig) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-
 		// AUTH
 		token, err := auth.GetBearerToken(req.Header)
 		if err != nil {
@@ -63,10 +62,28 @@ func CreateChirp(cfg *config.ApiConfig) http.HandlerFunc {
 func GetChirps(cfg *config.ApiConfig) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 
-		chirps, err := db.GetChirpsDB(cfg)
+		authorId := req.URL.Query().Get("author_id")
+		orderBy := req.URL.Query().Get("sort")
+
+		var err error
+		var authorUUID uuid.UUID
+
+		if authorId > "" {
+			authorUUID, err = uuid.Parse(authorId)
+			if err != nil {
+				respondWithError(w, http.StatusInternalServerError, err, "Author id invalid")
+				return
+			}
+		}
+
+		chirps, err := db.GetChirpsDB(cfg, model.Chirp{UserID: authorUUID})
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, err, "Error fetching chirps")
 			return
+		}
+
+		if orderBy == "desc" {
+			sort.Slice(chirps, func(i, j int) bool { return chirps[i].CreatedAt.UTC().After(chirps[j].CreatedAt.UTC()) })
 		}
 
 		var response []model.GetChirpResponse
